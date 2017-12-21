@@ -207,7 +207,7 @@ void eval(char *cmdline)
         /*if(addjob(jobs,pid,2,cmdline) == 0){
             unix_error("Unsucessful adding job");
         }*/
-        addjob(jobs,pid,BG,cmdline);
+        addjob(jobs,pid,bg + 1,cmdline);
         sigprocmask(SIG_SETMASK,&prev_one,NULL);
 
 
@@ -358,8 +358,10 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    printf("Sig int\n");
-    _exit(0);
+    pid_t foreground = fgpid(jobs);
+    kill(foreground,sig);
+    /*printf("Sig int\n");
+    _exit(0);*/
 }
 
 /*
