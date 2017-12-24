@@ -224,10 +224,6 @@ void eval(char *cmdline)
             printf("[%d] (%d) %s", job->jid, job->pid, cmdline);
         }
     }
-    else{
-        //TODO else its a built in command
-
-    }
 
     return;
 }
@@ -305,6 +301,7 @@ int builtin_cmd(char **argv)
     }
     if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg")){
         do_bgfg(argv);
+        return 1;
     }
     return 0;
 }
@@ -314,6 +311,22 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
+    if(!strcmp(argv[0], "fg")) {
+        pid_t pid = atoi(argv[1]);
+        struct job_t *job = getjobpid(jobs, pid);
+        job->state = FG;
+        kill(pid, 18);
+        waitfg(pid);
+        return;
+    }
+    if(!strcmp(argv[0], "bg")) {
+        pid_t pid = atoi(argv[1]);
+        struct job_t *job = getjobpid(jobs, pid);
+        job->state = BG;
+
+        return;
+    }
+
     return;
 }
 
@@ -392,20 +405,19 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig)
 {
-    struct job_t *job;
+    //make
     pid_t foreground = fgpid(jobs);
-    printf("%d\n",foreground);
-    job = getjobpid(jobs,foreground);
-    if(foreground != 0 && job->state == FG){
-        getjobpid(jobs,foreground)->state = ST;
-        printf("prekill ");
-        kill(foreground,sig);
-        printf("[%d] (%d) stopped by %d\n", job->jid, job->pid, sig);
-        return;
+    struct job_t *job = getjobpid(jobs, foreground);
+    if(foreground > 0 && job->state == FG) {
+        kill(foreground, 20);
+        getjobpid(jobs, foreground)->state = ST;
     }
-    printf("got here w/o kill");
+    for(int i = 0; i < MAXJOBS; i++){
+        if(jobs[i].state != ST && jobs[i].state != UNDEF){
+            kill(jobs[i].pid, 18);
+        }
+    }
     return;
-
 }
 
 /*********************
