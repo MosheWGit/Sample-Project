@@ -224,10 +224,6 @@ void eval(char *cmdline)
             printf("[%d] (%d) %s", job->jid, job->pid, cmdline);
         }
     }
-    else{
-        //TODO else its a built in command
-
-    }
 
     return;
 }
@@ -305,6 +301,7 @@ int builtin_cmd(char **argv)
     }
     if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg")){
         do_bgfg(argv);
+        return 1;
     }
     return 0;
 }
@@ -314,6 +311,22 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
+    if(!strcmp(argv[0], "fg")) {
+        pid_t pid = atoi(argv[1]);
+        struct job_t *job = getjobpid(jobs, pid);
+        job->state = FG;
+        kill(pid, 18);
+        waitfg(pid);
+        return;
+    }
+    if(!strcmp(argv[0], "bg")) {
+        pid_t pid = atoi(argv[1]);
+        struct job_t *job = getjobpid(jobs, pid);
+        job->state = BG;
+
+        return;
+    }
+
     return;
 }
 
@@ -345,10 +358,6 @@ void sigchld_handler(int sig)
     pid_t pid;
     int status;
     //struct job_t *job;
-    if(pid == 0){
-        exit(0);
-    }
-
 
     while((pid = waitpid(-1, &status, WNOHANG)) > 0){
         //job = getjobpid(jobs, pid);
@@ -379,9 +388,12 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig)
 {
-    printf("%d\n", sig);
     pid_t foreground = fgpid(jobs);
+    if(foreground == 0){
+        return;
+    }
     kill(foreground,sig);
+    return;
     /*printf("Sig int\n");
     _exit(0);*/
 }
@@ -394,10 +406,18 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig)
 {
     //make
-    //pid_t foreground = fgpid(jobs);
-    printf("%d\n", sig);
-    sleep(5);
-    kill(0,sig);
+    pid_t foreground = fgpid(jobs);
+    struct job_t *job = getjobpid(jobs, foreground);
+    if(foreground > 0 && job->state == FG) {
+        kill(foreground, 20);
+        getjobpid(jobs, foreground)->state = ST;
+    }
+    for(int i = 0; i < MAXJOBS; i++){
+        if(jobs[i].state != ST && jobs[i].state != UNDEF){
+            kill(jobs[i].pid, 18);
+        }
+    }
+    return;
 }
 
 /*********************
