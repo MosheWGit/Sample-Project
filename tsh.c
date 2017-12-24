@@ -311,19 +311,64 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
-    if(!strcmp(argv[0], "fg")) {
-        pid_t pid = atoi(argv[1]);
-        struct job_t *job = getjobpid(jobs, pid);
-        job->state = FG;
-        kill(pid, 18);
-        waitfg(pid);
-        return;
-    }
-    if(!strcmp(argv[0], "bg")) {
-        pid_t pid = atoi(argv[1]);
-        struct job_t *job = getjobpid(jobs, pid);
-        job->state = BG;
+    int size = (sizeof(argv)/sizeof(argv[0]));
+    printf("%d", size);
+    if(size > 1){
+        if(!strcmp(argv[0], "fg")) {
+            char* delim = "%";
+            char* hold = malloc(sizeof(argv[1] + 1));
+            if(strstr(argv[1], delim) != NULL) {
+                strcpy(hold,argv[1]);
+                char* delimString = strtok(hold, delim);
+                printf("this is delimstring %s\n",delimString);
 
+                pid_t jid = atoi(delimString);
+
+                struct job_t *job = getjobjid(jobs, jid);
+                job->state = FG;
+                pid_t pid = job->pid;
+                kill(pid, 18);
+                waitfg(pid);
+                return;
+            }
+            else{
+                pid_t pid = atoi(argv[1]);
+                struct job_t *job = getjobpid(jobs, pid);
+                job->state = FG;
+                kill(pid, 18);
+                waitfg(pid);
+                return;
+            }
+        }
+        if(!strcmp(argv[0], "bg")) {
+            char* delim = "%";
+            char* hold = malloc(sizeof(argv[1] + 1));
+
+            if(strstr(argv[1], delim) != NULL) {
+                strcpy(hold,argv[1]);
+                char* delimString = strtok(hold, delim);
+                printf("this is delimstring %s\n",delimString);
+
+                pid_t jid = atoi(delimString);
+
+                struct job_t *job = getjobjid(jobs, jid);
+                job->state = BG;
+                return;
+            }
+            else{
+
+                pid_t pid = atoi(argv[1]);
+
+                struct job_t *job = getjobpid(jobs, pid);
+                job->state = BG;
+                return;
+
+            }
+        }
+
+    }
+    else{
+        printf("bgfg error\n");
         return;
     }
 
@@ -413,7 +458,7 @@ void sigtstp_handler(int sig)
         getjobpid(jobs, foreground)->state = ST;
     }
     for(int i = 0; i < MAXJOBS; i++){
-        if(jobs[i].state != ST && jobs[i].state != UNDEF){
+        if(jobs[i].state != ST ){
             kill(jobs[i].pid, 18);
         }
     }
