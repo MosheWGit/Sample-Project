@@ -345,10 +345,6 @@ void sigchld_handler(int sig)
     pid_t pid;
     int status;
     //struct job_t *job;
-    if(pid == 0){
-        exit(0);
-    }
-
 
     while((pid = waitpid(-1, &status, WNOHANG)) > 0){
         //job = getjobpid(jobs, pid);
@@ -379,9 +375,12 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig)
 {
-    printf("%d\n", sig);
     pid_t foreground = fgpid(jobs);
+    if(foreground == 0){
+        return;
+    }
     kill(foreground,sig);
+    return;
     /*printf("Sig int\n");
     _exit(0);*/
 }
@@ -393,11 +392,20 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig)
 {
-    //make
-    //pid_t foreground = fgpid(jobs);
-    printf("%d\n", sig);
-    sleep(5);
-    kill(0,sig);
+    struct job_t *job;
+    pid_t foreground = fgpid(jobs);
+    printf("%d\n",foreground);
+    job = getjobpid(jobs,foreground);
+    if(foreground != 0 && job->state == FG){
+        getjobpid(jobs,foreground)->state = ST;
+        printf("prekill ");
+        kill(foreground,sig);
+        printf("[%d] (%d) stopped by %d\n", job->jid, job->pid, sig);
+        return;
+    }
+    printf("got here w/o kill");
+    return;
+
 }
 
 /*********************
