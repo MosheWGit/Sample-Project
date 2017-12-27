@@ -316,7 +316,7 @@ void do_bgfg(char **argv)
 {
     int size = (sizeof(argv)/sizeof(argv[0]));
     printf("%d", size);
-    if(size > 1){
+    if(argv[1] != NULL){
         if(!strcmp(argv[0], "fg")) {
             char* delim = "%";
             char* hold = malloc(sizeof(argv[1] + 1));
@@ -356,6 +356,9 @@ void do_bgfg(char **argv)
 
                 struct job_t *job = getjobjid(jobs, jid);
                 job->state = BG;
+                pid_t pid = job->pid;
+                kill(pid, 18);
+                waitfg(pid);
                 return;
             }
             else{
@@ -364,6 +367,8 @@ void do_bgfg(char **argv)
 
                 struct job_t *job = getjobpid(jobs, pid);
                 job->state = BG;
+                kill(pid, 18);
+                waitfg(pid);
                 return;
 
             }
