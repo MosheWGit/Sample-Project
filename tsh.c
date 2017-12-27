@@ -195,6 +195,7 @@ void eval(char *cmdline)
     if (!builtin_cmd(argv)) {
         //sigprocmask(SIG_BLOCK, &mask_one, &prev_one);
         if ((pid = Fork()) == 0) { /* Child runs user job */
+            setpgid(0,0);
             //sigprocmask(SIG_SETMASK,&prev_one,NULL);
             //execve(argv[0], argv, environ);
             if (execve(argv[0], argv, environ) < 0) {
@@ -207,6 +208,8 @@ void eval(char *cmdline)
         /*if(addjob(jobs,pid,2,cmdline) == 0){
             unix_error("Unsucessful adding job");
         }*/
+        pid_t parentpgid = getpgid(pid);
+        printf("parent Pgid %d\n",parentpgid);
         addjob(jobs, pid, bg ? BG : FG, cmdline);
         //sigprocmask(SIG_SETMASK,&prev_one,NULL);
 
@@ -437,7 +440,11 @@ void sigint_handler(int sig)
     if(foreground == 0){
         return;
     }
-    kill(foreground,sig);
+
+    pid_t pgid = getpgid(foreground);
+    pgid = -1 * pgid;
+    printf("PGID = %d\n",pgid);
+    kill(pgid,sig);
     return;
     /*printf("Sig int\n");
     _exit(0);*/
@@ -454,14 +461,17 @@ void sigtstp_handler(int sig)
     pid_t foreground = fgpid(jobs);
     struct job_t *job = getjobpid(jobs, foreground);
     if(foreground > 0 && job->state == FG) {
-        kill(foreground, 20);
+        pid_t pgid = getpgid(foreground);
+        pgid = -1 * pgid;
+        kill(pgid, 20);
+        //this next line needs to change
         getjobpid(jobs, foreground)->state = ST;
     }
-    for(int i = 0; i < MAXJOBS; i++){
+    /*for(int i = 0; i < MAXJOBS; i++){
         if(jobs[i].state != ST ){
             kill(jobs[i].pid, 18);
         }
-    }
+    }*/
     return;
 }
 
