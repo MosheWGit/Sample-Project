@@ -90,7 +90,7 @@ pid_t Fork()
 {
     pid_t pid;
     if ((pid = fork()) < 0)
-        unix_error("Fork error");
+        unix_error("Fork error\n");
     return pid;
 }
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	    fflush(stdout);
 	}
 	if ((fgets(cmdline, MAXLINE, stdin) == NULL) && ferror(stdin))
-	    app_error("fgets error");
+	    app_error("fgets error\n");
 	if (feof(stdin)) { /* End of file (ctrl-d) */
 	    fflush(stdout);
 	    exit(0);
@@ -208,8 +208,8 @@ void eval(char *cmdline)
         /*if(addjob(jobs,pid,2,cmdline) == 0){
             unix_error("Unsucessful adding job");
         }*/
-        pid_t parentpgid = getpgid(pid);
-        printf("parent Pgid %d\n",parentpgid);
+        /*pid_t parentpgid = getpgid(pid);
+        printf("parent Pgid %d\n",parentpgid);*/
         addjob(jobs, pid, bg ? BG : FG, cmdline);
         //sigprocmask(SIG_SETMASK,&prev_one,NULL);
 
@@ -314,8 +314,8 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
-    int size = (sizeof(argv)/sizeof(argv[0]));
-    printf("%d", size);
+    //int size = (sizeof(argv)/sizeof(argv[0]));
+    //printf("%d", size);
     if(argv[1] != NULL){
         if(!strcmp(argv[0], "fg")) {
             char* delim = "%";
@@ -323,7 +323,7 @@ void do_bgfg(char **argv)
             if(strstr(argv[1], delim) != NULL) {
                 strcpy(hold,argv[1]);
                 char* delimString = strtok(hold, delim);
-                printf("this is delimstring %s\n",delimString);
+                //printf("this is delimstring %s\n",delimString);
 
                 pid_t jid = atoi(delimString);
 
@@ -350,7 +350,7 @@ void do_bgfg(char **argv)
             if(strstr(argv[1], delim) != NULL) {
                 strcpy(hold,argv[1]);
                 char* delimString = strtok(hold, delim);
-                printf("this is delimstring %s\n",delimString);
+                //printf("this is delimstring %s\n",delimString);
 
                 pid_t jid = atoi(delimString);
 
@@ -358,6 +358,8 @@ void do_bgfg(char **argv)
                 job->state = BG;
                 pid_t pid = job->pid;
                 kill(pid, 18);
+                //printf("[%d] (%d) %s", job->jid, job->pid, cmdline);
+                printf("[%d] (%d) restarted\n", job->jid, job->pid);
                 waitfg(pid);
                 return;
             }
@@ -368,6 +370,7 @@ void do_bgfg(char **argv)
                 struct job_t *job = getjobpid(jobs, pid);
                 job->state = BG;
                 kill(pid, 18);
+                printf("[%d] (%d) restarted\n", job->jid, job->pid);
                 waitfg(pid);
                 return;
 
@@ -448,7 +451,7 @@ void sigint_handler(int sig)
 
     pid_t pgid = getpgid(foreground);
     pgid = -1 * pgid;
-    printf("PGID = %d\n",pgid);
+    //printf("PGID = %d\n",pgid);
     kill(pgid,sig);
     return;
     /*printf("Sig int\n");
@@ -469,6 +472,7 @@ void sigtstp_handler(int sig)
         pid_t pgid = getpgid(foreground);
         pgid = -1 * pgid;
         kill(pgid, 20);
+        printf("Job [%i] (%i) stopped by signal %i\n",job->jid,job->pid,sig);
         //this next line needs to change
         getjobpid(jobs, foreground)->state = ST;
     }
